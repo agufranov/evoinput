@@ -123,12 +123,29 @@ export const ShortcutInput = ({
     );
   }, [currentInput, valueInternal]);
 
+  // If value prop changes, update internal state
+  useEffect(() => {
+    setValueInternal(parsedValue);
+  }, [parsedValue]);
+
+  // Clear also current input, if value is cleared
+  useEffect(() => {
+    if (!valueInternal || isEmpty(valueInternal)) {
+      setCurrentInput({
+        modifierKeys: [],
+        mainKey: null,
+      });
+    }
+  }, [valueInternal]);
+
+  // When editing done, if current input is valid - commit it
   useEffect(() => {
     if (!editing && isValidCurrentInput) {
       setValueInternal(currentInput);
     }
   }, [editing, isValidCurrentInput, currentInput]);
 
+  // When editing done, if current input is invalid - clear it
   useEffect(() => {
     if (!editing && !isValidCurrentInput) {
       setCurrentInput({
