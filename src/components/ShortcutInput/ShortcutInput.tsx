@@ -31,6 +31,9 @@ const getKeyDisplayName = (key: string) => {
   return key;
 };
 
+const getKeysAsArray = ({ mainKey, modifierKeys }: ShortcutData) =>
+  mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys;
+
 const parseKey = (key: string) => (key === "Space" ? " " : key);
 const serializeKey = (key: string) => (key === " " ? "Space" : key);
 
@@ -45,18 +48,19 @@ const parseValue = (value?: string): ShortcutData => {
   };
 };
 
-const serializeValue = (data: ShortcutData | undefined) =>
-  data ? [...data.modifierKeys, data.mainKey?.toUpperCase()].map(serializeKey).join("+") : "";
+const serializeValue = (data: ShortcutData | undefined) => {
+  if (!data) return "";
 
-const getKeysAsArray = ({ mainKey, modifierKeys }: ShortcutData) =>
-  mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys;
+  return getKeysAsArray(data).map(serializeKey).join("+");
+};
 
 interface Props {
   value?: string;
   onChange?: (value: string | undefined) => void;
+  placeholder?: string;
 }
 
-export const ShortcutInput = ({ value, onChange }: Props) => {
+export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
   const parsedValue = useMemo(() => parseValue(value), [value]);
 
   const [modifierKeys, setModifierKeys] = useState<ModifierKey[]>(
@@ -74,13 +78,16 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
     isValid ? { modifierKeys, mainKey } : undefined
   );
 
-  const [isFocused, setIsFocused] = useState(false);
+  // > Two internal states: focused and blurred
+  // But one of them is redundant, so we use only 'focused'
+  const [focused, setFocused] = useState(false);
 
   const [keysPressed, setKeysPressed] = useState(0);
 
   const inProgress = useMemo(() => keysPressed > 0, [keysPressed]);
 
-  const currentKeys = useMemo(
+  // If input is empty, show current user input, otherwise - show last saved value
+  const displayKeys = useMemo(
     () => getKeysAsArray(internalValue ?? { modifierKeys, mainKey }),
     [internalValue, modifierKeys, mainKey]
   );
@@ -133,30 +140,36 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
 
   useEffect(() => {
     onChange?.(serializeValue(internalValue));
-  }, [internalValue]);
+  }, [onChange, internalValue]);
 
   const handleBlur = () => {
-    setIsFocused(false);
+    setFocused(false);
     setKeysPressed(0);
   };
 
   return (
     <div
       className={cn(style.root, {
-        [style.rootFocused]: isFocused,
+        [style.rootFocused]: focused,
         [style.rootInProgress]: inProgress,
       })}
       onKeyDown={handleKeyDown}
       onKeyUp={handleKeyUp}
-      onFocus={() => setIsFocused(true)}
+      onFocus={() => setFocused(true)}
       onBlur={handleBlur}
       tabIndex={0}
     >
-      {currentKeys.map(getKeyDisplayName).map((key) => (
-        <div className={style.key} key={key}>
-          {key}
+      {displayKeys.length ? (
+        displayKeys.map(getKeyDisplayName).map((key) => (
+          <div className={style.key} key={key}>
+            {key}
+          </div>
+        ))
+      ) : (
+        <div className={style.placeholder}>
+          {placeholder ?? "Press Shortcut"}
         </div>
-      ))}
+      )}
     </div>
   );
 };

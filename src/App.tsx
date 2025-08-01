@@ -3,7 +3,7 @@ import style from "./App.module.css";
 import { ShortcutInput } from "./components/ShortcutInput";
 
 function App() {
-  const [value, setValue] = useState("Control+Shift+A");
+  const [value, setValue] = useState<string | undefined>("Control+Shift+A");
   return (
     <main className={style.root}>
       <p className="read-the-docs">
