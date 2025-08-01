@@ -1,14 +1,22 @@
 import cn from "classnames";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import style from "./ShortcutInput.module.css";
 
 const MODIFIER_KEYS = ["Control", "Alt", "Shift", "CapsLock", "Meta"] as const;
 
-type ModifierKeys = (typeof MODIFIER_KEYS)[number];
+type ModifierKey = (typeof MODIFIER_KEYS)[number];
+
+const isModifierKey = (key: string): key is ModifierKey => {
+  return (MODIFIER_KEYS as readonly string[]).includes(key);
+};
 
 const getKeyDisplayName = (key: string) => {
   if (key === " ") {
     return "Space";
+  }
+
+  if (key === "Control") {
+    return "Ctrl";
   }
 
   if (key.length === 1) {
@@ -19,40 +27,93 @@ const getKeyDisplayName = (key: string) => {
 };
 
 export const ShortcutInput = () => {
-  const [modifierKeys, setModifierKeys] = useState<string[]>([]);
-  const [inProgress, setInProgress] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [modifierKeys, setModifierKeys] = useState<ModifierKey[]>([]);
+  const [mainKey, setMainKey] = useState<string | null>(null);
+  const [keysPressed, setKeysPressed] = useState(0);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    e.preventDefault();
-    if (e.repeat) return;
-    console.log(e);
-    setInProgress(true);
-    setModifierKeys((modifierKeys) => [
-      ...modifierKeys,
-      getKeyDisplayName(e.key),
-    ]);
-  }, []);
+  const inProgress = useMemo(() => keysPressed > 0, [keysPressed]);
+  const isValid = useMemo(
+    () => mainKey !== null && modifierKeys.length > 0,
+    [mainKey, modifierKeys]
+  );
+  const keys = useMemo(
+    () => (mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys),
+    [modifierKeys, mainKey]
+  );
+
+  const clear = () => {
+    setModifierKeys([]);
+    setMainKey(null);
+  };
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      e.preventDefault();
+
+      if (e.repeat) {
+        return;
+      }
+
+      if (keysPressed === 0) {
+        clear();
+      }
+
+      setKeysPressed((keysPressed) => keysPressed + 1);
+
+      if (isModifierKey(e.key)) {
+        setModifierKeys((modifierKeys) =>
+          [...new Set([...modifierKeys, e.key] as ModifierKey[])].sort(
+            (a, b) => MODIFIER_KEYS.indexOf(a) - MODIFIER_KEYS.indexOf(b)
+          )
+        );
+      } else {
+        setMainKey(e.key);
+      }
+    },
+    [keysPressed]
+  );
 
   const handleKeyUp = useCallback((e: React.KeyboardEvent) => {
     e.preventDefault();
-    setModifierKeys((modifierKeys) =>
-      modifierKeys.filter((key) => key !== getKeyDisplayName(e.key))
-    );
-    if (modifierKeys.length === 0) {
-      setInProgress(false);
-    }
-    setInProgress(false);
+
+    setKeysPressed((keysPressed) => keysPressed - 1);
+
+    // if (isModifierKey(e.key)) {
+    //   setModifierKeys((modifierKeys) =>
+    //     modifierKeys.filter((key) => key !== e.key)
+    //   );
+    // }
   }, []);
+
+  useEffect(() => {
+    if (keysPressed === 0 && !isValid) {
+      clear();
+    }
+  }, [keysPressed]);
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    setKeysPressed(0);
+  };
 
   return (
     <div
-      className={cn(style.root, { [style.rootInProgress]: inProgress })}
-      onKeyDownCapture={handleKeyDown}
+      className={cn(style.root, {
+        [style.rootFocused]: isFocused,
+        [style.rootInProgress]: inProgress,
+      })}
+      onKeyDown={handleKeyDown}
       onKeyUp={handleKeyUp}
-      onFocus={console.log}
+      onFocus={() => setIsFocused(true)}
+      onBlur={handleBlur}
       tabIndex={0}
     >
-      {modifierKeys.join(" ")}
+      {keys.map(getKeyDisplayName).map((key) => (
+        <div className={style.key} key={key}>
+          {key}
+        </div>
+      ))}
     </div>
   );
 };

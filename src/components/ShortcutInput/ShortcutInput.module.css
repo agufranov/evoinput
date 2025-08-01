@@ -1,6 +1,7 @@
 .root {
     display: flex;
     align-items: center;
+    gap: 4px;
     width: 200px;
     height: 36px;
     margin: auto;
@@ -14,12 +15,30 @@
     font-size: 12px;
 }
 
-.root:focus {
+.rootFocused {
     border: 2px solid #457cef;
     padding: 0 7px;
     outline: none;
+    transition: border-color ease 0.3s;
 }
 
 .rootInProgress {
-    border: 1px solid red;
+    /* animation: blink 0.4s infinite; */
+    border-color: red;
+}
+
+.key {
+    padding: 4px;
+    background-color: #e4e5e5;
+    border-radius: 4px;
+    line-height: 0.8rem;
+}
+
+@keyframes blink {
+    0%, 100% {
+        border-color: #457cef;
+    }
+    50% {
+        border-color: #457cefaa;
+    }
 }
