@@ -5,18 +5,16 @@
     width: 200px;
     height: 36px;
     margin: auto;
-    margin-top: 16px;
     padding: 0 8px;
-    color: #87888d;
-    background-color: #f6f6f6;
-    border: 1px solid #e3e4e4;
+    color: var(--textColor);
+    background-color: var(--backgroundPrimary);
+    border: 1px solid var(--borderInactive);
     border-radius: 4px;
     box-sizing: border-box;
-    font-size: 12px;
 }
 
 .rootFocused {
-    border: 2px solid #457cef;
+    border: 2px solid var(--activeColor);
     padding: 0 7px;
     outline: none;
     transition: border-color ease 0.3s;
