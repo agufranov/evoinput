@@ -31,11 +31,14 @@ const getKeyDisplayName = (key: string) => {
   return key;
 };
 
+const parseKey = (key: string) => (key === "Space" ? " " : key);
+const serializeKey = (key: string) => (key === " " ? "Space" : key);
+
 const parseValue = (value?: string): ShortcutData => {
   if (!value) {
     return { modifierKeys: [], mainKey: null };
   }
-  const keys = value.split("+");
+  const keys = value.split("+").map(parseKey);
   return {
     modifierKeys: keys.filter(isModifierKey),
     mainKey: keys.find((key) => !isModifierKey(key)) || null,
@@ -43,7 +46,7 @@ const parseValue = (value?: string): ShortcutData => {
 };
 
 const serializeValue = (data: ShortcutData | undefined) =>
-  data ? [...data.modifierKeys, data.mainKey?.toUpperCase()].join("+") : "";
+  data ? [...data.modifierKeys, data.mainKey?.toUpperCase()].map(serializeKey).join("+") : "";
 
 const getKeysAsArray = ({ mainKey, modifierKeys }: ShortcutData) =>
   mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys;
@@ -87,32 +90,29 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
     setMainKey(null);
   };
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      e.preventDefault();
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    e.preventDefault();
 
-      if (e.repeat) {
-        return;
-      }
+    if (e.repeat) {
+      return;
+    }
 
-      if (keysPressed === 0) {
-        clear();
-      }
+    if (keysPressed === 0) {
+      clear();
+    }
 
-      setKeysPressed((keysPressed) => keysPressed + 1);
+    setKeysPressed((keysPressed) => keysPressed + 1);
 
-      if (isModifierKey(e.key)) {
-        setModifierKeys((modifierKeys) =>
-          [...new Set([...modifierKeys, e.key] as ModifierKey[])].sort(
-            (a, b) => MODIFIER_KEYS.indexOf(a) - MODIFIER_KEYS.indexOf(b)
-          )
-        );
-      } else {
-        setMainKey(e.key);
-      }
-    },
-    [keysPressed]
-  );
+    if (isModifierKey(e.key)) {
+      setModifierKeys((modifierKeys) =>
+        [...new Set([...modifierKeys, e.key] as ModifierKey[])].sort(
+          (a, b) => MODIFIER_KEYS.indexOf(a) - MODIFIER_KEYS.indexOf(b)
+        )
+      );
+    } else {
+      setMainKey(e.key);
+    }
+  };
 
   const handleKeyUp = useCallback((e: React.KeyboardEvent) => {
     e.preventDefault();
