@@ -19,13 +19,13 @@ function App() {
           onChange={(e) => setValue1(e.target.value)}
         />
       </div>
-      {/* <div>
+      <div>
         <h1>Without initial value</h1>
         <div className={style.row}>
           <ShortcutInput onChange={setValue2} />
         </div>
         <div className={style.value}>Value: "{value2}"</div>
-      </div> */}
+      </div>
     </main>
   );
 }
