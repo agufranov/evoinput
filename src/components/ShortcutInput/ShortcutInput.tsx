@@ -4,12 +4,30 @@ import style from "./ShortcutInput.module.css";
 
 const MODIFIER_KEYS = ["Control", "Alt", "Shift", "CapsLock", "Meta"] as const;
 
+const INPUT_SEPARATOR = "+";
+
 type ModifierKey = (typeof MODIFIER_KEYS)[number];
 
 interface ShortcutData {
   modifierKeys: ModifierKey[];
   mainKey: string | null;
 }
+
+enum ValidationError {
+  NoModifierKeys = "NO_MODIFIER_KEYS",
+  NoMainKey = "NO_MAIN_KEY",
+  MoreThanOneMainKey = "MORE_THAN_ONE_MAIN_KEY",
+}
+
+const ERROR_MESSAGES = {
+  [ValidationError.NoModifierKeys]: "No modifier keys",
+  [ValidationError.NoMainKey]: "No main key",
+  [ValidationError.MoreThanOneMainKey]: "More than one main key",
+};
+
+type ValidationErrorType = {
+  error: ValidationError;
+};
 
 const isModifierKey = (key: string): key is ModifierKey => {
   return (MODIFIER_KEYS as readonly string[]).includes(key);
@@ -49,27 +67,47 @@ const parseKey = (key: string | undefined) =>
 const serializeKey = (key: string) =>
   key === " " ? "Space" : key.length === 1 ? key.toUpperCase() : key;
 
-const parseValue = (value?: string): ShortcutData | null => {
+const parseValue = (value: string | null): ShortcutData => {
   if (!value) {
     return {
       modifierKeys: [],
       mainKey: null,
     };
   }
-  const keys = value.split("+").filter(Boolean);
+  const keys = value.trim().split(INPUT_SEPARATOR).filter(Boolean);
 
+  const modifierKeys = keys.filter(isModifierKey);
   // TODO validate
+  if (modifierKeys.length === 0) {
+    console.log("no modifier keys");
+    throw {
+      error: ValidationError.NoModifierKeys,
+    } satisfies ValidationErrorType;
+  }
+  const nonModifierKeys = keys.filter((key) => !isModifierKey(key));
+  if (nonModifierKeys.length === 0) {
+    console.log("no main key");
+    throw { error: ValidationError.NoMainKey } satisfies ValidationErrorType;
+  }
+  if (nonModifierKeys.length > 1) {
+    console.log("more than one main key");
+    throw {
+      error: ValidationError.MoreThanOneMainKey,
+    } satisfies ValidationErrorType;
+  }
 
   return {
-    modifierKeys: keys.filter(isModifierKey),
+    modifierKeys,
     mainKey: parseKey(keys.find((key) => !isModifierKey(key))),
   };
 };
 
-const serializeValue = (data: ShortcutData | null) => {
-  if (!data) return "";
+const serializeValue = (data: ShortcutData | null): string | null => {
+  if (!data) return null;
 
-  return getKeysAsArray(data).map(serializeKey).join("+");
+  if (isEmpty(data)) return "";
+
+  return getKeysAsArray(data).map(serializeKey).join(INPUT_SEPARATOR);
 };
 
 const addModifierKey = (data: ShortcutData, key: ModifierKey) => {
@@ -83,8 +121,8 @@ const addModifierKey = (data: ShortcutData, key: ModifierKey) => {
 };
 
 interface Props {
-  value?: string;
-  onChange?: (value: string | undefined) => void;
+  value: string | null;
+  onChange?: (value: string | null) => void;
   placeholder?: string;
 }
 
@@ -93,9 +131,25 @@ export const ShortcutInput = ({
   onChange,
   placeholder,
 }: Props) => {
-  const parsedValue = useMemo(() => parseValue(valueRaw), [valueRaw]);
+  const [error, setError] = useState<ValidationError | null>(null);
 
-  const [valueInternal, setValueInternal] = useState(parsedValue);
+  const parsedValue = useMemo(() => {
+    try {
+      const result = parseValue(valueRaw);
+      console.log("parsed successfully???", valueRaw);
+      setError(null);
+      return result;
+    } catch (err: any) {
+      console.log("err", err);
+      setError(err.error);
+
+      return null;
+    }
+  }, [valueRaw]);
+
+  const [valueInternal, setValueInternal] = useState<ShortcutData | null>(
+    parsedValue
+  );
 
   const [currentInput, setCurrentInput] = useState<ShortcutData>({
     modifierKeys: valueInternal?.modifierKeys ?? [],
@@ -130,6 +184,7 @@ export const ShortcutInput = ({
 
   // Clear also current input, if value is cleared
   useEffect(() => {
+    console.log("value internal", valueInternal);
     if (!valueInternal || isEmpty(valueInternal)) {
       setCurrentInput({
         modifierKeys: [],
@@ -156,7 +211,9 @@ export const ShortcutInput = ({
   }, [editing, isValidCurrentInput]);
 
   useEffect(() => {
-    onChange?.(serializeValue(valueInternal));
+    if (valueInternal !== null) {
+      onChange?.(serializeValue(valueInternal));
+    }
   }, [valueInternal]);
 
   // If input is empty, show current user input, otherwise - show last saved value
@@ -211,7 +268,8 @@ export const ShortcutInput = ({
         onBlur={handleBlur}
         tabIndex={0}
       >
-        {true || isValidCurrentInput ? (
+        {/* TODO change keysToDisplay */}
+        {!error || keysToDisplay.length ? (
           keysToDisplay.length ? (
             keysToDisplay.map(getKeyDisplayName).map((key) => (
               <div className={style.key} key={key}>
@@ -224,11 +282,13 @@ export const ShortcutInput = ({
             </div>
           )
         ) : (
-          <div>Invalid</div>
+          <div>Error: {ERROR_MESSAGES[error]}</div>
         )}
       </div>
       <pre>current input: {JSON.stringify(currentInput)}</pre>
       <pre>value internal: {JSON.stringify(valueInternal)}</pre>
+      <pre>parsed value: {JSON.stringify(parsedValue)}</pre>
+      <pre>error: {JSON.stringify(error)}</pre>
     </div>
   );
 };
