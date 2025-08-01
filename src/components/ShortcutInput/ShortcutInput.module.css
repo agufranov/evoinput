@@ -11,18 +11,24 @@
   border: 1px solid var(--borderInactive);
   border-radius: 4px;
   box-sizing: border-box;
+  transition: border-color ease 0.3s;
 }
 
 .rootFocused {
   border: 2px solid var(--activeColor);
   padding: 0 7px;
   outline: none;
-  transition: border-color ease 0.3s;
 }
 
-.rootInProgress {
+.rootEditing {
   /* animation: blink 0.4s infinite; */
   border-color: rgb(14, 209, 31);
+}
+
+.rootError {
+  /* animation: blink 0.4s infinite; */
+  border-color: red;
+  color: red;
 }
 
 .key {

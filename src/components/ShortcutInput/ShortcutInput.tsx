@@ -113,17 +113,17 @@ export const ShortcutInput = ({
     }
   }, [editing, isValidCurrentInput]);
 
+  // Clear error on user input
   useEffect(() => {
     if (!isEmpty(currentInput)) setError(null);
   }, [currentInput]);
 
+  // Fire onChange when internal value changes
   useEffect(() => {
     if (valueInternal !== null) {
       onChange?.(serialize(valueInternal));
     }
   }, [valueInternal]);
-
-  // If input is empty, show current user input, otherwise - show last saved value
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     e.preventDefault();
@@ -167,7 +167,8 @@ export const ShortcutInput = ({
       <div
         className={cn(style.root, {
           [style.rootFocused]: focused,
-          [style.rootInProgress]: editing,
+          [style.rootEditing]: editing,
+          [style.rootError]: !!error,
         })}
         onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
