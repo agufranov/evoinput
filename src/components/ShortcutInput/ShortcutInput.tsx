@@ -31,20 +31,26 @@ const getKeyDisplayName = (key: string) => {
   return key;
 };
 
+const isEmpty = (data: ShortcutData | undefined) =>
+  data === undefined ||
+  (data.mainKey === null && data.modifierKeys.length === 0);
+
 const getKeysAsArray = ({ mainKey, modifierKeys }: ShortcutData) =>
   mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys;
 
-const parseKey = (key: string) => (key === "Space" ? " " : key);
-const serializeKey = (key: string) => (key === " " ? "Space" : key);
+const parseKey = (key: string | undefined) =>
+  key === undefined ? null : key === "Space" ? " " : key;
+const serializeKey = (key: string) =>
+  key === " " ? "Space" : key.length === 1 ? key.toUpperCase() : key;
 
 const parseValue = (value?: string): ShortcutData => {
   if (!value) {
     return { modifierKeys: [], mainKey: null };
   }
-  const keys = value.split("+").map(parseKey);
+  const keys = value.split("+").filter(Boolean);
   return {
     modifierKeys: keys.filter(isModifierKey),
-    mainKey: keys.find((key) => !isModifierKey(key)) || null,
+    mainKey: parseKey(keys.find((key) => !isModifierKey(key))),
   };
 };
 
@@ -69,13 +75,18 @@ export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
 
   const [mainKey, setMainKey] = useState<string | null>(parsedValue.mainKey);
 
-  const isValid = useMemo(
+  const isValidInput = useMemo(
     () => mainKey !== null && modifierKeys.length > 0,
     [mainKey, modifierKeys]
   );
 
   const [internalValue, setInternalValue] = useState<ShortcutData | undefined>(
-    isValid ? { modifierKeys, mainKey } : undefined
+    isValidInput ? { modifierKeys, mainKey } : undefined
+  );
+
+  const isValidValue = useMemo(
+    () => modifierKeys.length > 0 && mainKey !== null,
+    [modifierKeys, mainKey]
   );
 
   // > Two internal states: focused and blurred
@@ -88,7 +99,12 @@ export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
 
   // If input is empty, show current user input, otherwise - show last saved value
   const displayKeys = useMemo(
-    () => getKeysAsArray(internalValue ?? { modifierKeys, mainKey }),
+    () =>
+      getKeysAsArray(
+        internalValue === undefined || isEmpty(internalValue)
+          ? { modifierKeys, mainKey }
+          : internalValue
+      ),
     [internalValue, modifierKeys, mainKey]
   );
 
@@ -96,6 +112,33 @@ export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
     setModifierKeys([]);
     setMainKey(null);
   };
+
+  useEffect(() => {
+    if (keysPressed === 0) {
+      if (!isValidInput) {
+        clear();
+      } else {
+        console.log("change", modifierKeys, mainKey);
+        setInternalValue({ modifierKeys, mainKey });
+      }
+    }
+  }, [keysPressed]);
+
+  useEffect(() => {
+    console.log("parsed", parsedValue);
+    const { mainKey, modifierKeys } = parsedValue;
+    // if (mainKey === null && modifierKeys.length === 0) {
+    //   setInternalValue(undefined);
+    // } else {
+    setInternalValue(parsedValue);
+    // }
+    setModifierKeys(modifierKeys);
+    setMainKey(mainKey);
+  }, [parsedValue]);
+
+  useEffect(() => {
+    onChange?.(serializeValue(internalValue));
+  }, [onChange, internalValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     e.preventDefault();
@@ -127,21 +170,6 @@ export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
     setKeysPressed((keysPressed) => keysPressed - 1);
   }, []);
 
-  useEffect(() => {
-    if (keysPressed === 0) {
-      if (!isValid) {
-        clear();
-      } else {
-        console.log("change", modifierKeys, mainKey);
-        setInternalValue({ modifierKeys, mainKey });
-      }
-    }
-  }, [keysPressed]);
-
-  useEffect(() => {
-    onChange?.(serializeValue(internalValue));
-  }, [onChange, internalValue]);
-
   const handleBlur = () => {
     setFocused(false);
     setKeysPressed(0);
@@ -159,16 +187,20 @@ export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
       onBlur={handleBlur}
       tabIndex={0}
     >
-      {displayKeys.length ? (
-        displayKeys.map(getKeyDisplayName).map((key) => (
-          <div className={style.key} key={key}>
-            {key}
+      {isValidValue ? (
+        displayKeys.length ? (
+          displayKeys.map(getKeyDisplayName).map((key) => (
+            <div className={style.key} key={key}>
+              {key}
+            </div>
+          ))
+        ) : (
+          <div className={style.placeholder}>
+            {placeholder ?? "Press Shortcut"}
           </div>
-        ))
+        )
       ) : (
-        <div className={style.placeholder}>
-          {placeholder ?? "Press Shortcut"}
-        </div>
+        <div>Invalid</div>
       )}
     </div>
   );

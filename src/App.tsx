@@ -14,12 +14,15 @@ function App() {
           <button onClick={() => setValue1(undefined)}>Clear</button>
         </div>
         <div className={style.value}>Value: "{value1}"</div>
+        <input
+          placeholder="Manual input"
+          onChange={(e) => setValue1(e.target.value)}
+        />
       </div>
       <div>
         <h1>Without initial value</h1>
         <div className={style.row}>
           <ShortcutInput onChange={setValue2} />
-          <button onClick={() => setValue2(undefined)}>Clear</button>
         </div>
         <div className={style.value}>Value: "{value2}"</div>
       </div>
