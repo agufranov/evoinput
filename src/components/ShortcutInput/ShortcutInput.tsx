@@ -6,6 +6,8 @@ const MODIFIER_KEYS = ["Control", "Alt", "Shift", "CapsLock", "Meta"] as const;
 
 type ModifierKey = (typeof MODIFIER_KEYS)[number];
 
+type ParsedValue = { modifierKeys: ModifierKey[]; mainKey: string | null };
+
 const isModifierKey = (key: string): key is ModifierKey => {
   return (MODIFIER_KEYS as readonly string[]).includes(key);
 };
@@ -26,21 +28,53 @@ const getKeyDisplayName = (key: string) => {
   return key;
 };
 
-export const ShortcutInput = () => {
+const parseValue = (value?: string): ParsedValue => {
+  if (!value) {
+    return { modifierKeys: [], mainKey: null };
+  }
+  const keys = value.split("+");
+  return {
+    modifierKeys: keys.filter(isModifierKey),
+    mainKey: keys.find((key) => !isModifierKey(key)) || null,
+  };
+};
+
+const serializeValue = (modifierKeys: ModifierKey[], mainKey: string | null) =>
+  [...modifierKeys, mainKey?.toUpperCase()].join("+");
+
+interface Props {
+  value?: string;
+  onChange?: (value: string) => void;
+}
+
+export const ShortcutInput = ({ value, onChange }: Props) => {
+  const parsedValue = useMemo(() => parseValue(value), [value]);
+
+  const [modifierKeys, setModifierKeys] = useState<ModifierKey[]>(
+    parsedValue.modifierKeys
+  );
+
+  const [mainKey, setMainKey] = useState<string | null>(parsedValue.mainKey);
+
   const [isFocused, setIsFocused] = useState(false);
-  const [modifierKeys, setModifierKeys] = useState<ModifierKey[]>([]);
-  const [mainKey, setMainKey] = useState<string | null>(null);
+
   const [keysPressed, setKeysPressed] = useState(0);
 
   const inProgress = useMemo(() => keysPressed > 0, [keysPressed]);
+
   const isValid = useMemo(
     () => mainKey !== null && modifierKeys.length > 0,
     [mainKey, modifierKeys]
   );
-  const keys = useMemo(
+
+  const currentKeys = useMemo(
     () => (mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys),
     [modifierKeys, mainKey]
   );
+
+  const keys = useMemo(() => {
+    return value ? value.split("+") : [];
+  }, [value]);
 
   const clear = () => {
     setModifierKeys([]);
@@ -87,8 +121,12 @@ export const ShortcutInput = () => {
   }, []);
 
   useEffect(() => {
-    if (keysPressed === 0 && !isValid) {
-      clear();
+    if (keysPressed === 0) {
+      if (!isValid) {
+        clear();
+      } else {
+        onChange?.(serializeValue(modifierKeys, mainKey));
+      }
     }
   }, [keysPressed]);
 
@@ -109,7 +147,7 @@ export const ShortcutInput = () => {
       onBlur={handleBlur}
       tabIndex={0}
     >
-      {keys.map(getKeyDisplayName).map((key) => (
+      {currentKeys.map(getKeyDisplayName).map((key) => (
         <div className={style.key} key={key}>
           {key}
         </div>
