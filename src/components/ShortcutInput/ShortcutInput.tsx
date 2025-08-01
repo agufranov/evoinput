@@ -6,7 +6,10 @@ const MODIFIER_KEYS = ["Control", "Alt", "Shift", "CapsLock", "Meta"] as const;
 
 type ModifierKey = (typeof MODIFIER_KEYS)[number];
 
-type ParsedValue = { modifierKeys: ModifierKey[]; mainKey: string | null };
+interface ShortcutData {
+  modifierKeys: ModifierKey[];
+  mainKey: string | null;
+}
 
 const isModifierKey = (key: string): key is ModifierKey => {
   return (MODIFIER_KEYS as readonly string[]).includes(key);
@@ -28,7 +31,7 @@ const getKeyDisplayName = (key: string) => {
   return key;
 };
 
-const parseValue = (value?: string): ParsedValue => {
+const parseValue = (value?: string): ShortcutData => {
   if (!value) {
     return { modifierKeys: [], mainKey: null };
   }
@@ -39,12 +42,15 @@ const parseValue = (value?: string): ParsedValue => {
   };
 };
 
-const serializeValue = (modifierKeys: ModifierKey[], mainKey: string | null) =>
-  [...modifierKeys, mainKey?.toUpperCase()].join("+");
+const serializeValue = (data: ShortcutData | undefined) =>
+  data ? [...data.modifierKeys, data.mainKey?.toUpperCase()].join("+") : "";
+
+const getKeysAsArray = ({ mainKey, modifierKeys }: ShortcutData) =>
+  mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys;
 
 interface Props {
   value?: string;
-  onChange?: (value: string) => void;
+  onChange?: (value: string | undefined) => void;
 }
 
 export const ShortcutInput = ({ value, onChange }: Props) => {
@@ -56,25 +62,25 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
 
   const [mainKey, setMainKey] = useState<string | null>(parsedValue.mainKey);
 
+  const isValid = useMemo(
+    () => mainKey !== null && modifierKeys.length > 0,
+    [mainKey, modifierKeys]
+  );
+
+  const [internalValue, setInternalValue] = useState<ShortcutData | undefined>(
+    isValid ? { modifierKeys, mainKey } : undefined
+  );
+
   const [isFocused, setIsFocused] = useState(false);
 
   const [keysPressed, setKeysPressed] = useState(0);
 
   const inProgress = useMemo(() => keysPressed > 0, [keysPressed]);
 
-  const isValid = useMemo(
-    () => mainKey !== null && modifierKeys.length > 0,
-    [mainKey, modifierKeys]
-  );
-
   const currentKeys = useMemo(
-    () => (mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys),
-    [modifierKeys, mainKey]
+    () => getKeysAsArray(internalValue ?? { modifierKeys, mainKey }),
+    [internalValue, modifierKeys, mainKey]
   );
-
-  const keys = useMemo(() => {
-    return value ? value.split("+") : [];
-  }, [value]);
 
   const clear = () => {
     setModifierKeys([]);
@@ -112,12 +118,6 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
     e.preventDefault();
 
     setKeysPressed((keysPressed) => keysPressed - 1);
-
-    // if (isModifierKey(e.key)) {
-    //   setModifierKeys((modifierKeys) =>
-    //     modifierKeys.filter((key) => key !== e.key)
-    //   );
-    // }
   }, []);
 
   useEffect(() => {
@@ -125,10 +125,15 @@ export const ShortcutInput = ({ value, onChange }: Props) => {
       if (!isValid) {
         clear();
       } else {
-        onChange?.(serializeValue(modifierKeys, mainKey));
+        console.log("change", modifierKeys, mainKey);
+        setInternalValue({ modifierKeys, mainKey });
       }
     }
   }, [keysPressed]);
+
+  useEffect(() => {
+    onChange?.(serializeValue(internalValue));
+  }, [internalValue]);
 
   const handleBlur = () => {
     setIsFocused(false);
