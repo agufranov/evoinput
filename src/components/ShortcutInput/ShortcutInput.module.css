@@ -1,0 +1,21 @@
+.root {
+    display: flex;
+    align-items: center;
+    width: 200px;
+    height: 36px;
+    margin: auto;
+    margin-top: 16px;
+    padding: 0 8px;
+    color: #87888d;
+    background-color: #f6f6f6;
+    border: 1px solid #e3e4e4;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 12px;
+}
+
+.root:focus {
+    border: 2px solid #457cef;
+    padding: 0 7px;
+    outline: none;
+}
