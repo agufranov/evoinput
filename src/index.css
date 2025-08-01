@@ -59,7 +59,7 @@ button {
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color ease 0.3s;
 }
 button:hover {
   border-color: var(--activeColor);
@@ -67,6 +67,15 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+input {
+  height: 36px;
+  color: #1a1a1a;
+  border-radius: 4px;
+  border: 1px solid var(--borderInactive);
+  padding: 0 8px;
+  box-sizing: border-box;
 }
 
 @media (prefers-color-scheme: light) {

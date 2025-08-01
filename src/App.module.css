@@ -1,8 +1,20 @@
 .root {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: left;
   justify-content: center;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  border: 1px solid var(--borderInactive);
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 24px;
+  background-color: #fcfcfc;
 }
 
 .row {

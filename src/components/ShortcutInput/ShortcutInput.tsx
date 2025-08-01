@@ -115,7 +115,7 @@ export const ShortcutInput = ({
 
   // Clear error on user input
   useEffect(() => {
-    if (!isEmpty(currentInput)) setError(null);
+    // setError(null);
   }, [currentInput]);
 
   // Fire onChange when internal value changes
@@ -193,10 +193,10 @@ export const ShortcutInput = ({
           <div>Error: {ERROR_MESSAGES[error]}</div>
         )}
       </div>
-      <pre>current input: {JSON.stringify(currentInput)}</pre>
+      {/* <pre>current input: {JSON.stringify(currentInput)}</pre>
       <pre>value internal: {JSON.stringify(valueInternal)}</pre>
       <pre>parsed value: {JSON.stringify(parsedValue)}</pre>
-      <pre>error: {JSON.stringify(error)}</pre>
+      <pre>error: {JSON.stringify(error)}</pre> */}
     </div>
   );
 };

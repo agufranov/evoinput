@@ -14,13 +14,17 @@
   transition: border-color ease 0.3s;
 }
 
+.root:hover {
+  border-color: var(--activeColor);
+}
+
 .rootFocused {
   border: 2px solid var(--activeColor);
   padding: 0 7px;
   outline: none;
 }
 
-.rootEditing {
+.rootFocused.rootEditing {
   /* animation: blink 0.4s infinite; */
   border-color: rgb(14, 209, 31);
 }
