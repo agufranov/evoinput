@@ -15,6 +15,9 @@ const isModifierKey = (key: string): key is ModifierKey => {
   return (MODIFIER_KEYS as readonly string[]).includes(key);
 };
 
+const modifierKeysComparator = (a: ModifierKey, b: ModifierKey) =>
+  MODIFIER_KEYS.indexOf(a) - MODIFIER_KEYS.indexOf(b);
+
 const getKeyDisplayName = (key: string) => {
   if (key === " ") {
     return "Space";
@@ -31,33 +34,52 @@ const getKeyDisplayName = (key: string) => {
   return key;
 };
 
-const isEmpty = (data: ShortcutData | undefined) =>
-  data === undefined ||
-  (data.mainKey === null && data.modifierKeys.length === 0);
+const isEmpty = (data: ShortcutData) =>
+  data.mainKey === null && data.modifierKeys.length === 0;
+
+const isValid = (data: ShortcutData) =>
+  data.mainKey !== null && data.modifierKeys.length !== 0;
 
 const getKeysAsArray = ({ mainKey, modifierKeys }: ShortcutData) =>
   mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys;
 
 const parseKey = (key: string | undefined) =>
   key === undefined ? null : key === "Space" ? " " : key;
+
 const serializeKey = (key: string) =>
   key === " " ? "Space" : key.length === 1 ? key.toUpperCase() : key;
 
-const parseValue = (value?: string): ShortcutData => {
+const parseValue = (value?: string): ShortcutData | null => {
   if (!value) {
-    return { modifierKeys: [], mainKey: null };
+    return {
+      modifierKeys: [],
+      mainKey: null,
+    };
   }
   const keys = value.split("+").filter(Boolean);
+
+  // TODO validate
+
   return {
     modifierKeys: keys.filter(isModifierKey),
     mainKey: parseKey(keys.find((key) => !isModifierKey(key))),
   };
 };
 
-const serializeValue = (data: ShortcutData | undefined) => {
+const serializeValue = (data: ShortcutData | null) => {
   if (!data) return "";
 
   return getKeysAsArray(data).map(serializeKey).join("+");
+};
+
+const addModifierKey = (data: ShortcutData, key: ModifierKey) => {
+  const { modifierKeys } = data;
+  return {
+    ...data,
+    modifierKeys: [...new Set([...modifierKeys, key])].sort(
+      modifierKeysComparator
+    ),
+  };
 };
 
 interface Props {
@@ -66,27 +88,23 @@ interface Props {
   placeholder?: string;
 }
 
-export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
-  const parsedValue = useMemo(() => parseValue(value), [value]);
+export const ShortcutInput = ({
+  value: valueRaw,
+  onChange,
+  placeholder,
+}: Props) => {
+  const parsedValue = useMemo(() => parseValue(valueRaw), [valueRaw]);
 
-  const [modifierKeys, setModifierKeys] = useState<ModifierKey[]>(
-    parsedValue.modifierKeys
-  );
+  const [valueInternal, setValueInternal] = useState(parsedValue);
 
-  const [mainKey, setMainKey] = useState<string | null>(parsedValue.mainKey);
+  const [currentInput, setCurrentInput] = useState<ShortcutData>({
+    modifierKeys: valueInternal?.modifierKeys ?? [],
+    mainKey: valueInternal?.mainKey ?? null,
+  });
 
-  const isValidInput = useMemo(
-    () => mainKey !== null && modifierKeys.length > 0,
-    [mainKey, modifierKeys]
-  );
-
-  const [internalValue, setInternalValue] = useState<ShortcutData | undefined>(
-    isValidInput ? { modifierKeys, mainKey } : undefined
-  );
-
-  const isValidValue = useMemo(
-    () => modifierKeys.length > 0 && mainKey !== null,
-    [modifierKeys, mainKey]
+  const isValidCurrentInput = useMemo(
+    () => isValid(currentInput),
+    [currentInput]
   );
 
   // > Two internal states: focused and blurred
@@ -95,50 +113,36 @@ export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
 
   const [keysPressed, setKeysPressed] = useState(0);
 
-  const inProgress = useMemo(() => keysPressed > 0, [keysPressed]);
+  const editing = useMemo(() => keysPressed > 0, [keysPressed]);
+
+  const keysToDisplay = useMemo(() => {
+    return getKeysAsArray(
+      valueInternal === null || isEmpty(valueInternal)
+        ? currentInput
+        : valueInternal
+    );
+  }, [currentInput, valueInternal]);
+
+  useEffect(() => {
+    if (!editing && isValidCurrentInput) {
+      setValueInternal(currentInput);
+    }
+  }, [editing, isValidCurrentInput, currentInput]);
+
+  useEffect(() => {
+    if (!editing && !isValidCurrentInput) {
+      setCurrentInput({
+        modifierKeys: [],
+        mainKey: null,
+      });
+    }
+  }, [editing, isValidCurrentInput]);
+
+  useEffect(() => {
+    onChange?.(serializeValue(valueInternal));
+  }, [valueInternal]);
 
   // If input is empty, show current user input, otherwise - show last saved value
-  const displayKeys = useMemo(
-    () =>
-      getKeysAsArray(
-        internalValue === undefined || isEmpty(internalValue)
-          ? { modifierKeys, mainKey }
-          : internalValue
-      ),
-    [internalValue, modifierKeys, mainKey]
-  );
-
-  const clear = () => {
-    setModifierKeys([]);
-    setMainKey(null);
-  };
-
-  useEffect(() => {
-    if (keysPressed === 0) {
-      if (!isValidInput) {
-        clear();
-      } else {
-        console.log("change", modifierKeys, mainKey);
-        setInternalValue({ modifierKeys, mainKey });
-      }
-    }
-  }, [keysPressed]);
-
-  useEffect(() => {
-    console.log("parsed", parsedValue);
-    const { mainKey, modifierKeys } = parsedValue;
-    // if (mainKey === null && modifierKeys.length === 0) {
-    //   setInternalValue(undefined);
-    // } else {
-    setInternalValue(parsedValue);
-    // }
-    setModifierKeys(modifierKeys);
-    setMainKey(mainKey);
-  }, [parsedValue]);
-
-  useEffect(() => {
-    onChange?.(serializeValue(internalValue));
-  }, [onChange, internalValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     e.preventDefault();
@@ -147,20 +151,22 @@ export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
       return;
     }
 
+    // on the first key press - clear value and start from scratch
     if (keysPressed === 0) {
-      clear();
+      setCurrentInput({
+        modifierKeys: [],
+        mainKey: null,
+      });
     }
 
     setKeysPressed((keysPressed) => keysPressed + 1);
 
     if (isModifierKey(e.key)) {
-      setModifierKeys((modifierKeys) =>
-        [...new Set([...modifierKeys, e.key] as ModifierKey[])].sort(
-          (a, b) => MODIFIER_KEYS.indexOf(a) - MODIFIER_KEYS.indexOf(b)
-        )
+      setCurrentInput((currentInput) =>
+        addModifierKey(currentInput, e.key as ModifierKey)
       );
     } else {
-      setMainKey(e.key);
+      setCurrentInput((currentInput) => ({ ...currentInput, mainKey: e.key }));
     }
   };
 
@@ -176,32 +182,36 @@ export const ShortcutInput = ({ value, onChange, placeholder }: Props) => {
   };
 
   return (
-    <div
-      className={cn(style.root, {
-        [style.rootFocused]: focused,
-        [style.rootInProgress]: inProgress,
-      })}
-      onKeyDown={handleKeyDown}
-      onKeyUp={handleKeyUp}
-      onFocus={() => setFocused(true)}
-      onBlur={handleBlur}
-      tabIndex={0}
-    >
-      {isValidValue ? (
-        displayKeys.length ? (
-          displayKeys.map(getKeyDisplayName).map((key) => (
-            <div className={style.key} key={key}>
-              {key}
+    <div>
+      <div
+        className={cn(style.root, {
+          [style.rootFocused]: focused,
+          [style.rootInProgress]: editing,
+        })}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
+        onFocus={() => setFocused(true)}
+        onBlur={handleBlur}
+        tabIndex={0}
+      >
+        {true || isValidCurrentInput ? (
+          keysToDisplay.length ? (
+            keysToDisplay.map(getKeyDisplayName).map((key) => (
+              <div className={style.key} key={key}>
+                {key}
+              </div>
+            ))
+          ) : (
+            <div className={style.placeholder}>
+              {placeholder ?? "Press Shortcut"}
             </div>
-          ))
+          )
         ) : (
-          <div className={style.placeholder}>
-            {placeholder ?? "Press Shortcut"}
-          </div>
-        )
-      ) : (
-        <div>Invalid</div>
-      )}
+          <div>Invalid</div>
+        )}
+      </div>
+      <pre>current input: {JSON.stringify(currentInput)}</pre>
+      <pre>value internal: {JSON.stringify(valueInternal)}</pre>
     </div>
   );
 };
