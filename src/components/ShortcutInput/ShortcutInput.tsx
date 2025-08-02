@@ -148,7 +148,7 @@ export const ShortcutInput = ({
   const handleKeyUp = useCallback((e: React.KeyboardEvent) => {
     e.preventDefault();
 
-    setKeysPressed((keysPressed) => keysPressed - 1);
+    setKeysPressed((keysPressed) => Math.max(0, keysPressed - 1));
   }, []);
 
   const handleBlur = () => {
