@@ -1,6 +1,7 @@
 import cn from "classnames";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import style from "./ShortcutInput.module.css";
+import type { ModifierKey, ShortcutData } from "./types";
 import {
   ERROR_MESSAGES,
   ValidationError,
@@ -12,8 +13,6 @@ import {
   parse,
   serialize,
   toArray,
-  type ModifierKey,
-  type ShortcutData,
 } from "./util";
 
 interface Props {
@@ -113,11 +112,6 @@ export const ShortcutInput = ({
     }
   }, [editing, isValidCurrentInput]);
 
-  // Clear error on user input
-  useEffect(() => {
-    // setError(null);
-  }, [currentInput]);
-
   // Fire onChange when internal value changes
   useEffect(() => {
     if (valueInternal !== null) {
@@ -168,7 +162,7 @@ export const ShortcutInput = ({
         className={cn(style.root, {
           [style.rootFocused]: focused,
           [style.rootEditing]: editing,
-          [style.rootError]: !!error,
+          [style.rootError]: !!error && isEmpty(currentInput),
         })}
         onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
@@ -176,8 +170,7 @@ export const ShortcutInput = ({
         onBlur={handleBlur}
         tabIndex={0}
       >
-        {/* TODO change keysToDisplay */}
-        {!error ? (
+        {!(error && isEmpty(currentInput)) ? (
           keysToDisplay.length ? (
             keysToDisplay.map(getKeyDisplayName).map((key) => (
               <div className={style.key} key={key}>
@@ -193,10 +186,6 @@ export const ShortcutInput = ({
           <div>Error: {ERROR_MESSAGES[error]}</div>
         )}
       </div>
-      {/* <pre>current input: {JSON.stringify(currentInput)}</pre>
-      <pre>value internal: {JSON.stringify(valueInternal)}</pre>
-      <pre>parsed value: {JSON.stringify(parsedValue)}</pre>
-      <pre>error: {JSON.stringify(error)}</pre> */}
     </div>
   );
 };

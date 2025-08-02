@@ -5,7 +5,7 @@ import { ShortcutInput } from "./components/ShortcutInput";
 function App() {
   const [value1, setValue1] = useState<string | null>("Control+Shift+A");
   const [value2, setValue2] = useState<string | null>();
-  const [value3, setValue3] = useState<string | null>("Alt+");
+  const [value3, setValue3] = useState<string | null>("A+Shif");
   return (
     <main className={style.root}>
       <div className={style.block}>
@@ -31,7 +31,7 @@ function App() {
       <div className={style.block}>
         <h1>Validation</h1>
         <div className={style.row}>
-          <ShortcutInput value={value3} />
+          <ShortcutInput value={value3} onChange={setValue3} />
         </div>
         <div className={style.value}>Value: "{value3}"</div>
         <input
