@@ -1,4 +1,5 @@
 .root {
+  --color: #87888d;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -6,11 +7,13 @@
   height: 36px;
   margin: auto;
   padding: 0 8px;
-  color: var(--textColor);
+  color: var(--color);
   background-color: var(--backgroundPrimary);
   border: 1px solid var(--borderInactive);
   border-radius: 4px;
   box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
   transition: border-color ease 0.3s;
 }
 
@@ -18,21 +21,24 @@
   border-color: var(--activeColor);
 }
 
+.root:hover.rootError {
+  border-color: var(--errorColor);
+}
+
 .rootFocused {
-  border: 2px solid var(--activeColor);
+  border-width: 2px;
+  border-color: var(--activeColor);
   padding: 0 7px;
   outline: none;
 }
 
-.rootFocused.rootEditing {
-  /* animation: blink 0.4s infinite; */
+.root.rootEditing {
   border-color: rgb(14, 209, 31);
 }
 
-.rootError {
-  /* animation: blink 0.4s infinite; */
-  border-color: red;
-  color: red;
+.root.rootError {
+  border-color: color-mix(in srgb, var(--errorColor) 60%, transparent);
+  color: var(--errorColor);
 }
 
 .key {
@@ -46,7 +52,7 @@
   margin: 0 auto;
 }
 
-@keyframes blink {
+/* @keyframes blink {
   0%,
   100% {
     border-color: #457cef;
@@ -54,4 +60,4 @@
   50% {
     border-color: #457cefaa;
   }
-}
+} */

@@ -14,7 +14,7 @@
   border-radius: 8px;
   padding: 8px;
   margin-bottom: 24px;
-  background-color: #fcfcfc;
+  background-color: var(--backgroundSecondary);
 }
 
 .row {
