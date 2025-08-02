@@ -1,19 +1,14 @@
+import type { ModifierKey, ShortcutData, ValidationErrorType } from "./types";
+
 export const MODIFIER_KEYS = [
   "Control",
   "Alt",
   "Shift",
   "CapsLock",
   "Meta",
-] as const;
+] as const satisfies React.ModifierKey[];
 
 export const INPUT_SEPARATOR = "+";
-
-export type ModifierKey = (typeof MODIFIER_KEYS)[number];
-
-export interface ShortcutData {
-  modifierKeys: ModifierKey[];
-  mainKey: string | null;
-}
 
 export enum ValidationError {
   NoModifierKeys = "NO_MODIFIER_KEYS",
@@ -27,10 +22,6 @@ export const ERROR_MESSAGES = {
   [ValidationError.NoMainKey]: "No main key",
   [ValidationError.MoreThanOneMainKey]: "More than one main key",
   [ValidationError.DuplicateModifierKeys]: "Duplicate modifier keys",
-};
-
-export type ValidationErrorType = {
-  error: ValidationError;
 };
 
 export const isModifierKey = (key: string): key is ModifierKey => {
@@ -114,9 +105,7 @@ export const parse = (value: string | null): ShortcutData => {
 };
 
 export const serialize = (data: ShortcutData | null): string | null => {
-  if (!data) return null;
-
-  if (isEmpty(data)) return "";
+  if (!data || isEmpty(data)) return "";
 
   return toArray(data).map(serializeKey).join(INPUT_SEPARATOR);
 };
