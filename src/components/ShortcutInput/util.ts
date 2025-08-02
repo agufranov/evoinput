@@ -1,6 +1,6 @@
 import type { ModifierKey, ShortcutData, ValidationErrorType } from "./types";
 
-export const MODIFIER_KEYS = [
+export const DEFAULT_MODIFIER_KEYS = [
   "Control",
   "Alt",
   "Shift",
@@ -24,12 +24,15 @@ export const ERROR_MESSAGES = {
   [ValidationError.DuplicateModifierKeys]: "Duplicate modifier keys",
 };
 
-const isModifierKey = (key: string): key is ModifierKey => {
-  return (MODIFIER_KEYS as readonly string[]).includes(key);
+const isModifierKey = (
+  key: string,
+  allowedModifierKeys: ModifierKey[]
+): key is ModifierKey => {
+  return (allowedModifierKeys as readonly string[]).includes(key);
 };
 
 const modifierKeysComparator = (a: ModifierKey, b: ModifierKey) =>
-  MODIFIER_KEYS.indexOf(a) - MODIFIER_KEYS.indexOf(b);
+  DEFAULT_MODIFIER_KEYS.indexOf(a) - DEFAULT_MODIFIER_KEYS.indexOf(b);
 
 export const getKeyDisplayName = (key: string) => {
   if (key === " ") {
@@ -86,7 +89,10 @@ const serializeKey = (key: string) => {
   return key;
 };
 
-export const parse = (value: string | null): ShortcutData => {
+export const parse = (
+  value: string | null,
+  allowedModifierKeys: ModifierKey[]
+): ShortcutData => {
   if (!value) {
     return {
       modifierKeys: [],
@@ -95,7 +101,9 @@ export const parse = (value: string | null): ShortcutData => {
   }
   const keys = value.trim().split(INPUT_SEPARATOR).filter(Boolean);
 
-  const modifierKeys = keys.filter(isModifierKey);
+  const modifierKeys = keys.filter((key) =>
+    isModifierKey(key, allowedModifierKeys)
+  ) as ModifierKey[];
 
   // Validation
   if (modifierKeys.length === 0) {
@@ -110,7 +118,9 @@ export const parse = (value: string | null): ShortcutData => {
     } satisfies ValidationErrorType;
   }
 
-  const nonModifierKeys = keys.filter((key) => !isModifierKey(key));
+  const nonModifierKeys = keys.filter(
+    (key) => !isModifierKey(key, allowedModifierKeys)
+  );
 
   if (nonModifierKeys.length === 0) {
     throw { error: ValidationError.NoMainKey } satisfies ValidationErrorType;
@@ -124,7 +134,9 @@ export const parse = (value: string | null): ShortcutData => {
 
   return {
     modifierKeys,
-    mainKey: parseKey(keys.find((key) => !isModifierKey(key))),
+    mainKey: parseKey(
+      keys.find((key) => !isModifierKey(key, allowedModifierKeys))
+    ),
   };
 };
 
@@ -144,9 +156,21 @@ const addModifierKey = (data: ShortcutData, key: ModifierKey) => {
   };
 };
 
-export const addKey = (data: ShortcutData, e: React.KeyboardEvent) => {
-  if (isModifierKey(e.key)) {
-    return addModifierKey(data, e.key);
+export const addKey = (
+  data: ShortcutData,
+  e: React.KeyboardEvent,
+  allowedModifierKeys: ModifierKey[]
+) => {
+  if (isModifierKey(e.key, DEFAULT_MODIFIER_KEYS)) {
+    // If it's modifier key, but not allowed - ignore it
+    if (
+      DEFAULT_MODIFIER_KEYS.includes(e.key) &&
+      !allowedModifierKeys.includes(e.key)
+    ) {
+      return data;
+    } else {
+      return addModifierKey(data, e.key);
+    }
   } else if (/^Key\w$/.test(e.code)) {
     return { ...data, mainKey: e.code.slice(3) };
   } else {

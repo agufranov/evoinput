@@ -1,8 +1,9 @@
 import cn from "classnames";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import style from "./ShortcutInput.module.css";
-import type { ShortcutData } from "./types";
+import type { ModifierKey, ShortcutData } from "./types";
 import {
+  DEFAULT_MODIFIER_KEYS,
   ERROR_MESSAGES,
   ValidationError,
   addKey,
@@ -18,12 +19,14 @@ interface Props {
   value?: string | null;
   onChange?: (value: string | null) => void;
   placeholder?: string;
+  allowedModifierKeys?: ModifierKey[];
 }
 
 export const ShortcutInput = ({
   value: valueRaw,
   onChange,
   placeholder,
+  allowedModifierKeys,
 }: Props) => {
   const [keysPressed, setKeysPressed] = useState(0);
 
@@ -42,7 +45,7 @@ export const ShortcutInput = ({
 
     try {
       setError(null);
-      return parse(valueRaw);
+      return parse(valueRaw, allowedModifierKeys ?? DEFAULT_MODIFIER_KEYS);
     } catch (err: any) {
       setError(err.error);
       return null;
@@ -126,7 +129,9 @@ export const ShortcutInput = ({
 
     setKeysPressed((keysPressed) => keysPressed + 1);
 
-    setCurrentInput((currentInput) => addKey(currentInput, e));
+    setCurrentInput((currentInput) =>
+      addKey(currentInput, e, allowedModifierKeys ?? DEFAULT_MODIFIER_KEYS)
+    );
   };
 
   const handleKeyUp = useCallback((e: React.KeyboardEvent) => {

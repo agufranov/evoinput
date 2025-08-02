@@ -5,7 +5,8 @@ import { ShortcutInput } from "./components/ShortcutInput";
 function App() {
   const [value1, setValue1] = useState<string | null>("Control+Shift+A");
   const [value2, setValue2] = useState<string | null>();
-  const [value3, setValue3] = useState<string | null>("A+Shif");
+  const [value3, setValue3] = useState<string | null>();
+  const [value4, setValue4] = useState<string | null>("A+Shif");
   return (
     <main className={style.root}>
       <div className={style.block}>
@@ -28,14 +29,26 @@ function App() {
         <div className={style.value}>Value: "{value2}"</div>
       </div>
       <div className={style.block}>
+        <h1>Allowed modifier keys: ['Alt', 'Shift']</h1>
+        <div className={style.row}>
+          <ShortcutInput
+            value={value3}
+            onChange={setValue3}
+            allowedModifierKeys={["Alt", "Shift"]}
+          />
+          <button onClick={() => setValue3("")}>Clear</button>
+        </div>
+        <div className={style.value}>Value: "{value2}"</div>
+      </div>
+      <div className={style.block}>
         <h1>Value validation</h1>
         <div className={style.row}>
-          <ShortcutInput value={value3} onChange={setValue3} />
+          <ShortcutInput value={value4} onChange={setValue4} />
         </div>
         <input
           placeholder="Manual input"
-          value={value3 ?? ""}
-          onChange={(e) => setValue3(e.target.value)}
+          value={value4 ?? ""}
+          onChange={(e) => setValue4(e.target.value)}
         />
       </div>
     </main>

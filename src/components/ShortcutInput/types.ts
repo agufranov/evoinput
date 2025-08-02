@@ -1,6 +1,6 @@
-import type { MODIFIER_KEYS, ValidationError } from "./util";
+import type { DEFAULT_MODIFIER_KEYS, ValidationError } from "./util";
 
-export type ModifierKey = (typeof MODIFIER_KEYS)[number];
+export type ModifierKey = (typeof DEFAULT_MODIFIER_KEYS)[number];
 
 export interface ShortcutData {
   modifierKeys: ModifierKey[];
