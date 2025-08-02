@@ -14,7 +14,6 @@ function App() {
           <ShortcutInput value={value1} onChange={setValue1} />
           <button onClick={() => setValue1("")}>Clear</button>
         </div>
-        <div className={style.value}>Value: "{value1}"</div>
         <input
           value={value1 ?? ""}
           placeholder="Manual input"
@@ -29,11 +28,10 @@ function App() {
         <div className={style.value}>Value: "{value2}"</div>
       </div>
       <div className={style.block}>
-        <h1>Validation</h1>
+        <h1>Value validation</h1>
         <div className={style.row}>
           <ShortcutInput value={value3} onChange={setValue3} />
         </div>
-        <div className={style.value}>Value: "{value3}"</div>
         <input
           placeholder="Manual input"
           value={value3 ?? ""}

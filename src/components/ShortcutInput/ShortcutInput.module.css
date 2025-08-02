@@ -1,19 +1,21 @@
 .root {
   --color: #87888d;
+  --horizontalPadding: 12px;
   display: flex;
   align-items: center;
   gap: 4px;
   width: 210px;
   height: 36px;
   margin: auto;
-  padding: 0 8px;
+  padding: 0 var(--horizontalPadding);
   color: var(--color);
   background-color: var(--backgroundPrimary);
   border: 1px solid var(--borderInactive);
-  border-radius: 4px;
+  border-radius: 8px;
   box-sizing: border-box;
   cursor: pointer;
   user-select: none;
+  outline: none;
   transition: border-color ease 0.3s;
 }
 
@@ -28,12 +30,11 @@
 .rootFocused {
   border-width: 2px;
   border-color: var(--activeColor);
-  padding: 0 7px;
-  outline: none;
+  padding: 0 calc(var(--horizontalPadding) - 1px);
 }
 
 .root.rootEditing {
-  border-color: rgb(14, 209, 31);
+  animation: blink 0.4s infinite;
 }
 
 .root.rootError {
@@ -42,22 +43,23 @@
 }
 
 .key {
-  padding: 4px;
+  padding: 6px;
   background-color: #e4e5e5;
-  border-radius: 4px;
+  border-radius: 8px;
   line-height: 0.8rem;
+  text-shadow: var(--color) 0 0px 1px;
 }
 
 .placeholder {
   margin: 0 auto;
 }
 
-/* @keyframes blink {
+@keyframes blink {
   0%,
   100% {
-    border-color: #457cef;
+    border-color: var(--activeColor);
   }
   50% {
-    border-color: #457cefaa;
+    border-color: color-mix(in srgb, var(--activeColor) 60%, transparent);
   }
-} */
+}

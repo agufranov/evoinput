@@ -24,11 +24,11 @@ export const ERROR_MESSAGES = {
   [ValidationError.DuplicateModifierKeys]: "Duplicate modifier keys",
 };
 
-export const isModifierKey = (key: string): key is ModifierKey => {
+const isModifierKey = (key: string): key is ModifierKey => {
   return (MODIFIER_KEYS as readonly string[]).includes(key);
 };
 
-export const modifierKeysComparator = (a: ModifierKey, b: ModifierKey) =>
+const modifierKeysComparator = (a: ModifierKey, b: ModifierKey) =>
   MODIFIER_KEYS.indexOf(a) - MODIFIER_KEYS.indexOf(b);
 
 export const getKeyDisplayName = (key: string) => {
@@ -56,11 +56,35 @@ export const isValid = (data: ShortcutData) =>
 export const toArray = ({ mainKey, modifierKeys }: ShortcutData) =>
   mainKey !== null ? [...modifierKeys, mainKey] : modifierKeys;
 
-export const parseKey = (key: string | undefined) =>
-  key === undefined ? null : key === "Space" ? " " : key;
+const reverseObject = (o: object) =>
+  Object.fromEntries(Object.entries(o).map(([a, b]) => [b, a]));
 
-export const serializeKey = (key: string) =>
-  key === " " ? "Space" : key.length === 1 ? key.toUpperCase() : key;
+const SERIALIZE_KEY_DICT: Record<string, string> = {
+  " ": "Space",
+  "+": "Plus",
+};
+
+const PARSE_KEY_DICT = reverseObject(SERIALIZE_KEY_DICT);
+
+const parseKey = (key: string | undefined) => {
+  if (key === undefined) {
+    return null;
+  }
+
+  if (key in PARSE_KEY_DICT) {
+    return PARSE_KEY_DICT[key];
+  }
+
+  return key;
+};
+
+const serializeKey = (key: string) => {
+  if (key in SERIALIZE_KEY_DICT) {
+    return SERIALIZE_KEY_DICT[key];
+  }
+
+  return key;
+};
 
 export const parse = (value: string | null): ShortcutData => {
   if (!value) {
@@ -110,7 +134,7 @@ export const serialize = (data: ShortcutData | null): string | null => {
   return toArray(data).map(serializeKey).join(INPUT_SEPARATOR);
 };
 
-export const addModifierKey = (data: ShortcutData, key: ModifierKey) => {
+const addModifierKey = (data: ShortcutData, key: ModifierKey) => {
   const { modifierKeys } = data;
   return {
     ...data,
@@ -118,4 +142,14 @@ export const addModifierKey = (data: ShortcutData, key: ModifierKey) => {
       modifierKeysComparator
     ),
   };
+};
+
+export const addKey = (data: ShortcutData, e: React.KeyboardEvent) => {
+  if (isModifierKey(e.key)) {
+    return addModifierKey(data, e.key);
+  } else if (/^Key\w$/.test(e.code)) {
+    return { ...data, mainKey: e.code.slice(3) };
+  } else {
+    return { ...data, mainKey: e.key };
+  }
 };

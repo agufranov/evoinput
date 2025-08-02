@@ -1,14 +1,13 @@
 import cn from "classnames";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import style from "./ShortcutInput.module.css";
-import type { ModifierKey, ShortcutData } from "./types";
+import type { ShortcutData } from "./types";
 import {
   ERROR_MESSAGES,
   ValidationError,
-  addModifierKey,
+  addKey,
   getKeyDisplayName,
   isEmpty,
-  isModifierKey,
   isValid,
   parse,
   serialize,
@@ -26,28 +25,36 @@ export const ShortcutInput = ({
   onChange,
   placeholder,
 }: Props) => {
+  const [keysPressed, setKeysPressed] = useState(0);
+
+  const editing = useMemo(() => keysPressed > 0, [keysPressed]);
+
+  // > Two internal states: focused and blurred
+  // But one of them is redundant, so we use only 'focused'
+  const [focused, setFocused] = useState(false);
+
   const [error, setError] = useState<ValidationError | null>(null);
 
   const parsedValue = useMemo(() => {
     if (!valueRaw) {
       return null;
     }
+
     try {
       setError(null);
-      const result = parse(valueRaw);
-      return result;
+      return parse(valueRaw);
     } catch (err: any) {
-      console.log("err", err);
       setError(err.error);
-
       return null;
     }
   }, [valueRaw]);
 
+  // Saved value
   const [valueInternal, setValueInternal] = useState<ShortcutData | null>(
     parsedValue
   );
 
+  // Current user input
   const [currentInput, setCurrentInput] = useState<ShortcutData>({
     modifierKeys: valueInternal?.modifierKeys ?? [],
     mainKey: valueInternal?.mainKey ?? null,
@@ -58,14 +65,6 @@ export const ShortcutInput = ({
     [currentInput]
   );
 
-  // > Two internal states: focused and blurred
-  // But one of them is redundant, so we use only 'focused'
-  const [focused, setFocused] = useState(false);
-
-  const [keysPressed, setKeysPressed] = useState(0);
-
-  const editing = useMemo(() => keysPressed > 0, [keysPressed]);
-
   const keysToDisplay = useMemo(() => {
     return toArray(
       valueInternal === null || isEmpty(valueInternal)
@@ -74,24 +73,21 @@ export const ShortcutInput = ({
     );
   }, [currentInput, valueInternal]);
 
+  const clearCurrentInput = () =>
+    setCurrentInput({ modifierKeys: [], mainKey: null });
+
   // If value prop changes, update internal state
   useEffect(() => {
     setValueInternal(parsedValue);
     if (parsedValue === null) {
-      setCurrentInput({
-        modifierKeys: [],
-        mainKey: null,
-      });
+      clearCurrentInput();
     }
   }, [parsedValue]);
 
-  // Clear also current input, if value is cleared
+  // If value is cleared, clear also current input
   useEffect(() => {
     if (!valueInternal || isEmpty(valueInternal)) {
-      setCurrentInput({
-        modifierKeys: [],
-        mainKey: null,
-      });
+      clearCurrentInput();
     }
   }, [valueInternal]);
 
@@ -105,10 +101,7 @@ export const ShortcutInput = ({
   // When editing done, if current input is invalid - clear it
   useEffect(() => {
     if (!editing && !isValidCurrentInput) {
-      setCurrentInput({
-        modifierKeys: [],
-        mainKey: null,
-      });
+      clearCurrentInput();
     }
   }, [editing, isValidCurrentInput]);
 
@@ -126,23 +119,14 @@ export const ShortcutInput = ({
       return;
     }
 
-    // on the first key press - clear value and start from scratch
+    // When first key pressed - clear current input
     if (keysPressed === 0) {
-      setCurrentInput({
-        modifierKeys: [],
-        mainKey: null,
-      });
+      clearCurrentInput();
     }
 
     setKeysPressed((keysPressed) => keysPressed + 1);
 
-    if (isModifierKey(e.key)) {
-      setCurrentInput((currentInput) =>
-        addModifierKey(currentInput, e.key as ModifierKey)
-      );
-    } else {
-      setCurrentInput((currentInput) => ({ ...currentInput, mainKey: e.key }));
-    }
+    setCurrentInput((currentInput) => addKey(currentInput, e));
   };
 
   const handleKeyUp = useCallback((e: React.KeyboardEvent) => {
